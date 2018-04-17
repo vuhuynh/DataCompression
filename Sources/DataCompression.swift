@@ -7,7 +7,6 @@
 ///  Created by Markus Wanke, 2016/12/05
 ///
 
-
 ///
 ///                Apache License, Version 2.0
 ///
@@ -25,7 +24,6 @@
 ///  See the License for the specific language governing permissions and
 ///  limitations under the License.
 ///
-
 
 import Foundation
 import Compression
@@ -168,10 +166,10 @@ fileprivate extension Data.CompressionAlgorithm
 {
     var lowLevelType: compression_algorithm {
         switch self {
-            case .ZLIB    : return COMPRESSION_ZLIB
-            case .LZFSE   : return COMPRESSION_LZFSE
-            case .LZ4     : return COMPRESSION_LZ4
-            case .LZMA    : return COMPRESSION_LZMA
+        case .ZLIB    : return COMPRESSION_ZLIB
+        case .LZFSE   : return COMPRESSION_LZFSE
+        case .LZ4     : return COMPRESSION_LZ4
+        case .LZMA    : return COMPRESSION_LZMA
         }
     }
 }
@@ -184,7 +182,7 @@ fileprivate func perform(_ config: Config, source: UnsafePointer<UInt8>, sourceS
     guard config.operation == COMPRESSION_STREAM_ENCODE || sourceSize > 0 else { return nil }
     
     let streamBase = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
-    defer { streamBase.deallocate(capacity: 1) }
+    defer { streamBase.deallocate() }
     var stream = streamBase.pointee
     
     let status = compression_stream_init(&stream, config.operation, config.algorithm)
@@ -193,7 +191,7 @@ fileprivate func perform(_ config: Config, source: UnsafePointer<UInt8>, sourceS
     
     let bufferSize = Swift.max( Swift.min(sourceSize, 64 * 1024), 64)
     let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
-    defer { buffer.deallocate(capacity: bufferSize) }
+    defer { buffer.deallocate() }
     
     stream.dst_ptr  = buffer
     stream.dst_size = bufferSize
@@ -205,18 +203,18 @@ fileprivate func perform(_ config: Config, source: UnsafePointer<UInt8>, sourceS
     
     while true {
         switch compression_stream_process(&stream, flags) {
-            case COMPRESSION_STATUS_OK:
-                guard stream.dst_size == 0 else { return nil }
-                res.append(buffer, count: stream.dst_ptr - buffer)
-                stream.dst_ptr = buffer
-                stream.dst_size = bufferSize
-                
-            case COMPRESSION_STATUS_END:
-                res.append(buffer, count: stream.dst_ptr - buffer)
-                return res
-                
-            default:
-                return nil
+        case COMPRESSION_STATUS_OK:
+            guard stream.dst_size == 0 else { return nil }
+            res.append(buffer, count: stream.dst_ptr - buffer)
+            stream.dst_ptr = buffer
+            stream.dst_size = bufferSize
+            
+        case COMPRESSION_STATUS_END:
+            res.append(buffer, count: stream.dst_ptr - buffer)
+            return res
+            
+        default:
+            return nil
         }
     }
 }
